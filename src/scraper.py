@@ -14,9 +14,11 @@ API_HASH = os.getenv('TG_API_HASH')
 
 # List of channels to scrape
 CHANNELS = [
-    'CheMedTelegram',
+    'CheMed123',
     'lobelia4cosmetics',
-    'tikvahpharma'
+    'tikvahpharma',
+    'yenehealth',
+    'LiyuPharma'
 ]
 
 # Set up logging
