@@ -76,7 +76,17 @@ async def scrape_channel(client, channel_username):
         logging.error(f"Error scraping {channel_username}: {str(e)}")
 
 async def main():
-    async with TelegramClient('scraping_session', API_ID, API_HASH) as client:
+    # Attempting another set of parameters to bypass RPC Error 406
+    async with TelegramClient(
+        'scraping_session', 
+        API_ID, 
+        API_HASH,
+        device_model='iPhone 13 Pro',
+        system_version='15.0',
+        app_version='8.2.1',
+        lang_code='en',
+        system_lang_code='en-US'
+    ) as client:
         tasks = [scrape_channel(client, channel) for channel in CHANNELS]
         await asyncio.gather(*tasks)
 
