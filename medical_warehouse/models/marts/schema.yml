@@ -1,5 +1,56 @@
 version: 2
 
 models:
-  - name: dm_daily_summary
-    description: "Daily summary of messages per channel"
+  - name: dim_channels
+    description: "Dimension table containing information about Telegram channels."
+    columns:
+      - name: channel_key
+        description: "Surrogate key for the channel."
+        tests:
+          - unique
+          - not_null
+      - name: channel_name
+        description: "The unique name handle of the channel."
+        tests:
+          - unique
+          - not_null
+
+  - name: dim_dates
+    description: "Date dimension for time-series analysis."
+    columns:
+      - name: date_key
+        description: "Primary key in YYYYMMDD format."
+        tests:
+          - unique
+          - not_null
+      - name: full_date
+        description: "The actual date."
+        tests:
+          - unique
+          - not_null
+
+  - name: fct_messages
+    description: "Fact table containing one row per message with metrics and keys to dimensions."
+    columns:
+      - name: message_id
+        description: "Original ID from Telegram."
+        tests:
+          - not_null
+      - name: channel_key
+        description: "Foreign key to dim_channels."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_channels')
+              field: channel_key
+      - name: date_key
+        description: "Foreign key to dim_dates."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_dates')
+              field: date_key
+      - name: view_count
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
