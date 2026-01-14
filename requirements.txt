@@ -8,3 +8,4 @@ pytest
 pandas
 python-dotenv
 httpx
+telethon
