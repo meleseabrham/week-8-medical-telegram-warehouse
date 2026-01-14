@@ -4,7 +4,14 @@ __pycache__/
 .pytest_cache/
 .venv/
 venv/
-# data/ (Removed to allow pushing data as requested)
+# Ignore data files but keep directory structure
+data/raw/images/*
+!data/raw/images/.gitkeep
+data/raw/telegram_messages/*
+!data/raw/telegram_messages/.gitkeep
+
 target/
 dbt_packages/
 logs/
+*.session
+scraping_session.session
