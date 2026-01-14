@@ -7,3 +7,4 @@ dbt-postgres
 pytest
 pandas
 python-dotenv
+httpx
