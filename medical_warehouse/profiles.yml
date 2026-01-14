@@ -5,8 +5,8 @@ medical_warehouse:
       threads: 1
       host: localhost
       port: 5433
-      user: user
-      password: password
+      user: sa
+      password: "123"
       dbname: medical_db
       schema: public
   target: dev

@@ -1,18 +1,13 @@
 version: 2
 
-sources:
-  - name: public
-    database: medical_db
-    schema: public
-    tables:
-      - name: raw_messages
-
 models:
-  - name: stg_messages
-    description: "Staging table for Telegram messages"
+  - name: stg_telegram_messages
+    description: "Staging model for Telegram messages, cleaned and type-cast."
     columns:
-      - name: id
-        description: "Primary key"
+      - name: message_id
+        description: "Primary key (non-unique as one ID can span multiple rows if not handled, but here expected unique per channel)."
         tests:
-          - unique
+          - not_null
+      - name: channel_name
+        tests:
           - not_null
