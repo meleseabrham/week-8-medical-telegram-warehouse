@@ -13,3 +13,5 @@ data/raw/telegram_messages/*
 target/
 dbt_packages/
 logs/
+*.session
+scraping_session.session
