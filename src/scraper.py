@@ -21,6 +21,22 @@ CHANNELS = [
     'LiyuPharma'
 ]
 
+STATE_FILE = 'data/scraping_state.json'
+
+def load_state():
+    if os.path.exists(STATE_FILE):
+        try:
+            with open(STATE_FILE, 'r') as f:
+                return json.load(f)
+        except:
+            return {}
+    return {}
+
+def save_state(state):
+    os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
+    with open(STATE_FILE, 'w') as f:
+        json.dump(state, f, indent=4)
+
 # Set up logging
 logging.basicConfig(
     filename='logs/scraping.log',
@@ -28,9 +44,9 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-async def scrape_channel(client, channel_username):
+async def scrape_channel(client, channel_username, last_id=0):
     """Scrapes messages and images from a given Telegram channel."""
-    logging.info(f"Starting scraping for channel: {channel_username}")
+    logging.info(f"Starting scraping for channel: {channel_username} (last_id: {last_id})")
     
     try:
         entity = await client.get_entity(channel_username)
@@ -41,7 +57,13 @@ async def scrape_channel(client, channel_username):
         os.makedirs(image_dir, exist_ok=True)
         
         messages = []
-        async for message in client.iter_messages(entity, limit=100): # Limit to 100 for initial run
+        new_last_id = last_id
+        
+        # iter_messages with min_id to only get newer messages
+        async for message in client.iter_messages(entity, min_id=last_id, limit=200):
+            if message.id > new_last_id:
+                new_last_id = message.id
+                
             message_data = {
                 'message_id': message.id,
                 'channel_name': channel_name,
@@ -71,9 +93,11 @@ async def scrape_channel(client, channel_username):
             json.dump(messages, f, indent=4, ensure_ascii=False)
             
         logging.info(f"Successfully scraped {len(messages)} messages from {channel_name}")
+        return channel_username, new_last_id
         
     except Exception as e:
         logging.error(f"Error scraping {channel_username}: {str(e)}")
+        return channel_username, last_id
 
 async def main():
     # Attempting another set of parameters to bypass RPC Error 406
@@ -87,8 +111,18 @@ async def main():
         lang_code='en',
         system_lang_code='en-US'
     ) as client:
-        tasks = [scrape_channel(client, channel) for channel in CHANNELS]
-        await asyncio.gather(*tasks)
+        state = load_state()
+        tasks = []
+        for channel in CHANNELS:
+            last_id = state.get(channel, 0)
+            tasks.append(scrape_channel(client, channel, last_id))
+            
+        results = await asyncio.gather(*tasks)
+        
+        # Update and save state
+        for channel, nid in results:
+            state[channel] = nid
+        save_state(state)
 
 if __name__ == '__main__':
     if not API_ID or not API_HASH:
