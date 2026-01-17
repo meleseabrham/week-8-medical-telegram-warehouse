@@ -1,115 +1,103 @@
-# 🏥 Ethiopian Medical Business Data Warehouse
+# 🏥 Ethiopian Medical Data Warehouse
 
-An end-to-end data engineering pipeline designed to scrape, clean, and model data from public Telegram channels related to medical businesses in Ethiopia. The project implements a robust ELT (Extract, Load, Transform) architecture using Python, PostgreSQL, and dbt.
+[![CI/CD Pipeline](https://github.com/meleseabrham/week-8-medical-telegram-warehouse/actions/workflows/main.yml/badge.svg)](https://github.com/meleseabrham/week-8-medical-telegram-warehouse/actions)
+
+An end-to-end data engineering pipeline designed to archive, clean, and analyze medical business data from public Ethiopian Telegram channels. This project utilizes a sophisticated ELT stack including **Python**, **YOLOv8 AI**, **PostgreSQL**, **dbt**, **FastAPI**, and **Dagster**.
 
 ---
 
-## 🚀 Project Overview
+## 🌟 Core Features
 
-This system automates the collection of medical business data (posts, images, and metadata) and transforms it into a structured, analytical-ready Star Schema.
-
-### Key Features:
-- **Scalable Scraping**: Multi-channel Telegram scraping with automated image downloading.
-- **Raw Data Lake**: Partitioned storage for raw JSON metadata and organized image folders.
-- **Automated Loading**: Clean Python-based ingestion into a `raw` PostgreSQL schema.
-- **dbt Transformation**: Modular dbt models for cleaning, type-casting, and dimensional modeling.
-- **Star Schema**: Optimized database design for analytical queries.
-- **Data Quality**: 15+ automated schema and data tests.
+- **🚀 Scalable Incremental Scraping**: Smart scraping that only fetches new messages, optimizing resource usage.
+- **👁️ YOLOv8 AI Enrichment**: Automatic object detection and image categorization (Promotions, Products, Lifestyle).
+- **🏗️ Star Schema Warehouse**: Advanced dbt modeling for pharmaceutical and medical retail analytics.
+- **⚡ Analytical API**: High-performance FastAPI endpoints for real-time reporting.
+- **🔄 Full Orchestration**: Entire pipeline automated with Dagster (Daily schedules + Job monitoring).
+- **📊 Intelligence Dashboard**: Interactive Jupyter notebook for visualizing business insights.
 
 ---
 
 ## 📂 Project Structure
 
 ```text
-├── api/                # FastAPI Analytical API (Future Work)
-├── data/
-│   └── raw/            # Raw Data Lake
-│       ├── images/     # Organized by channel
-│       └── telegram_messages/ # Partitioned by YYYY-MM-DD
-├── medical_warehouse/  # dbt Project
-│   ├── models/
-│   │   ├── staging/    # Data cleaning & type casting
-│   │   └── marts/      # Star Schema (Dimensions & Facts)
-│   └── tests/          # Custom dbt data tests
-├── scripts/            # Diagnostic and utility scripts
-├── src/                # Core pipeline scripts (Scraper, Loader)
-├── logs/               # Processing logs
-├── docker-compose.yml  # PostgreSQL & API Infrastructure
-└── .env                # Secret management
+├── api/                # FastAPI Analytical Layer
+├── orchestration/      # Dagster Pipeline Definitions (Jobs, Ops, Schedules)
+├── medical_warehouse/  # dbt Project (Transformation Logic)
+├── notebooks/          # API Visualization Dashboards
+├── src/                # Core Logic (Scraper, Loader, YOLO Detection)
+├── data/               
+│   ├── raw/            # Scraped JSON & Images (Data Lake)
+│   └── processed/      # YOLO Detection CSVs
+├── tests/              # API and Pipeline Tests
+├── logs/               # Execution audit trails
+└── docker-compose.yml  # Database Infrastructure
 ```
 
 ---
 
-## 🛠️ Setup & Installation
+## 🛠️ Installation & Setup
 
-### 1. Requirements
+### 1. Prerequisites
 - Python 3.10+
-- Docker & Docker Desktop
+- Docker (for PostgreSQL)
 - Telegram API Credentials ([my.telegram.org](https://my.telegram.org))
 
-### 2. Environment Configuration
+### 2. Configure Environment
 Create a `.env` file in the root directory:
 ```env
-# Telegram API
+# Telegram Auth
 TG_API_ID=your_id
 TG_API_HASH=your_hash
 
-# Database
+# Database (Default for Docker)
 DB_HOST=localhost
-DB_PORT=5432
+DB_PORT=5433
 DB_NAME=medical_db
 DB_USER=sa
 DB_PASS=123
 ```
 
-### 3. Start the Infrastructure
+### 3. Install Dependencies
 ```bash
-docker-compose up -d
+pip install -r requirements.txt
 ```
 
 ---
 
-## 🏗️ Pipeline Workflows
+## 🏃 How to Run
 
-### Task 1: Data Scraping (Extract)
-Extracts messages and images from specified Telegram channels.
+### **Option 1: Guided Orchestration (Recommended)**
+The entire pipeline (Scrape -> Load -> YOLO -> dbt) is managed by Dagster.
 ```bash
-python src/scraper.py
+python -m dagster dev -m orchestration
 ```
-*Note: Authenticate with your phone number on the first run.*
+Then visit **[http://localhost:3000](http://localhost:3000)** to launch the `medical_pipeline_job`.
 
-### Task 2: Transformation (Load & Transform)
-1. **Load Raw Data to Postgres**:
-   ```bash
-   python src/load_data.py
-   ```
-2. **Run dbt Transformations**:
-   ```bash
-   cd medical_warehouse
-   dbt deps
-   dbt run
-   dbt test
-   ```
+### **Option 2: Manual Execution**
+If you prefer running individual components:
+1. **Scrape Data**: `python src/scraper.py`
+2. **Load to SQL**: `python src/load_data.py`
+3. **Run AI Detection**: `python src/yolo_detect.py`
+4. **dbt Transform**: `cd medical_warehouse && dbt run`
+5. **Start API**: `uvicorn api.main:app --reload`
 
 ---
 
-## 📊 Data Model (Star Schema)
-
-### Dimension Tables
-- **`dim_channels`**: Metadata for scraped channels (CheMed123, Lobelia, etc.).
-- **`dim_dates`**: Comprehensive date dimension for time-series analysis.
-
-### Fact Table
-- **`fct_messages`**: Centralized fact table linking messages to channels and dates with metrics like `view_count` and `forward_count`.
+## 📈 Analytical API Endpoints
+The API serves business insights at `http://localhost:8000/docs`:
+- `GET /api/reports/top-products`: Most frequent medical keywords.
+- `GET /api/reports/visual-content`: Engagement stats by image category.
+- `GET /api/channels/{name}/activity`: Channel-specific performance metrics.
+- `GET /api/search/messages`: Full-text search across all collected data.
 
 ---
 
-## ✅ Quality Assurance
-- Automated schema tests for primary keys, nulls, and relationships.
-- Custom Business Rule Tests (e.g., `assert_no_future_messages.sql`).
-- Detailed processing logs in `logs/`.
+## ✅ Quality & Compliance
+- **CI/CD**: Fully passing GitHub Actions on `task-4` and `task-5`.
+- **Testing**: Includes `pytest` for API and 15+ dbt tests for data integrity.
+- **Scalability**: Implemented state tracking to prevent duplicate processing.
 
 ---
 
 ## 📝 License
-This project is developed for educational and experimental purposes.
+MIT License. Developed for Advanced Data Engineering Research.
