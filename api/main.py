@@ -11,6 +11,10 @@ app = FastAPI(
     version="1.0.0"
 )
 
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to the Medical Telegram Warehouse API"}
+
 @app.get("/api/reports/top-products", response_model=List[TopProduct])
 def get_top_products(limit: int = 10, db: Session = Depends(get_db)):
     """
