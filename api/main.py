@@ -7,9 +7,12 @@ from .schemas import TopProduct, ChannelActivity, MessageSearch, VisualContentSt
 
 app = FastAPI(
     title="Ethiopian Medical Data Warehouse API",
-    description="API for accessing medical business insights from Telegram data.",
     version="1.0.0"
 )
+
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to the Medical Telegram Warehouse API"}
 
 @app.get("/api/reports/top-products", response_model=List[TopProduct])
 def get_top_products(limit: int = 10, db: Session = Depends(get_db)):
