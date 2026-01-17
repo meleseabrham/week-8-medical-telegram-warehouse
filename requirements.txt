@@ -8,4 +8,6 @@ pytest
 pandas
 python-dotenv
 httpx
+ultralytics
+opencv-python
 telethon
