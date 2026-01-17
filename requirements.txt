@@ -11,3 +11,5 @@ httpx
 ultralytics
 opencv-python
 telethon
+dagster
+dagster-webserver

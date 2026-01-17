@@ -1,15 +1,24 @@
 from pydantic import BaseModel
+from typing import List, Optional
+from datetime import datetime
 
-class MessageBase(BaseModel):
-    channel: str
-    content: str
+class TopProduct(BaseModel):
+    keyword: str
+    frequency: int
 
-class MessageCreate(MessageBase):
-    pass
+class ChannelActivity(BaseModel):
+    channel_name: str
+    post_count: int
+    avg_views: float
 
-class Message(MessageBase):
+class MessageSearch(BaseModel):
     id: int
-    timestamp: str
+    date: datetime
+    channel: str
+    text: str
+    views: Optional[int]
 
-    class Config:
-        orm_mode = True
+class VisualContentStats(BaseModel):
+    category: str
+    count: int
+    avg_views: float
