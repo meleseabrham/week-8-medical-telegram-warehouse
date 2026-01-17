@@ -94,6 +94,7 @@ def run_detection(conn):
     channels = [d for d in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, d))]
     
     processed_count = 0
+    all_detections = []
     
     for channel in channels:
         channel_path = os.path.join(base_dir, channel)
@@ -146,6 +147,26 @@ def run_detection(conn):
                     ))
                 conn.commit()
                 processed_count += 1
+                
+                # Append to CSV list (Requirement Task 3.2)
+                all_detections.append({
+                    'message_id': message_id,
+                    'channel_name': channel,
+                    'detected_class': primary_class,
+                    'confidence_score': max_conf,
+                    'image_category': category
+                })
+                
+            except Exception as e:
+                logging.error(f"Failed to process {img_path}: {e}")
+                conn.rollback()
+
+    # Save to CSV
+    if all_detections:
+        df = pd.DataFrame(all_detections)
+        os.makedirs('data/processed', exist_ok=True)
+        df.to_csv('data/processed/yolo_detections.csv', index=False)
+        logging.info("Saved detection results to data/processed/yolo_detections.csv")
                 
             except Exception as e:
                 logging.error(f"Failed to process {img_path}: {e}")
