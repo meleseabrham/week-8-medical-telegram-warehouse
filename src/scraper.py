@@ -45,7 +45,7 @@ async def scrape_channel(client, channel_username):
             message_data = {
                 'message_id': message.id,
                 'channel_name': channel_name,
-                'message_date': message.date.isoformat(),
+                'message_date': message.date.isoformat(), 
                 'message_text': message.message or "",
                 'has_media': message.media is not None,
                 'views': message.views or 0,
