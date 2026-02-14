@@ -1,41 +1,20 @@
 import os
 import json
 import logging
+from typing import Optional
 import psycopg2
-from psycopg2 import sql
-from dotenv import load_dotenv
+from .config import DBConfig, PathConfig
+from .utils import setup_logging, get_db_connection
 
-# Load environment variables
-load_dotenv()
-
-DB_HOST = os.getenv('DB_HOST', 'localhost')
-DB_PORT = os.getenv('DB_PORT', '5433')
-DB_NAME = os.getenv('DB_NAME', 'medical_db')
-DB_USER = os.getenv('DB_USER', 'user')
-DB_PASS = os.getenv('DB_PASS', 'password')
+# Initialize Config
+db_config = DBConfig()
+path_config = PathConfig()
 
 # Set up logging
-logging.basicConfig(
-    filename='logs/loading.log',
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+setup_logging('loading.log')
 
-def connect_db():
-    try:
-        conn = psycopg2.connect(
-            host=DB_HOST,
-            port=DB_PORT,
-            database=DB_NAME,
-            user=DB_USER,
-            password=DB_PASS
-        )
-        return conn
-    except Exception as e:
-        logging.error(f"Error connecting to database: {e}")
-        return None
-
-def create_raw_schema(conn):
+def create_raw_schema(conn: psycopg2.extensions.connection) -> None:
+    """Creates the raw schema and necessary tables for storing scraped data."""
     try:
         with conn.cursor() as cur:
             cur.execute("CREATE SCHEMA IF NOT EXISTS raw;")
@@ -58,10 +37,11 @@ def create_raw_schema(conn):
         logging.error(f"Error creating schema: {e}")
         conn.rollback()
 
-def load_data(conn):
-    base_dir = 'data/raw/telegram_messages'
+def load_data(conn: psycopg2.extensions.connection) -> None:
+    """Reads JSON files from the raw data directory and inserts them into the database."""
+    base_dir = path_config.MESSAGES_DIR
     if not os.path.exists(base_dir):
-        logging.warning("No telegram_messages directory found.")
+        logging.warning(f"No messages directory found at {base_dir}")
         return
 
     try:
@@ -97,7 +77,7 @@ def load_data(conn):
         conn.rollback()
 
 if __name__ == "__main__":
-    connection = connect_db()
+    connection = get_db_connection(db_config)
     if connection:
         create_raw_schema(connection)
         load_data(connection)

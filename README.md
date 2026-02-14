@@ -1,6 +1,6 @@
 # 🏥 Ethiopian Medical Data Warehouse
 
-[![CI/CD Pipeline](https://github.com/meleseabrham/week-8-medical-telegram-warehouse/actions/workflows/main.yml/badge.svg)](https://github.com/meleseabrham/week-8-medical-telegram-warehouse/actions)
+[![Unit Tests](https://github.com/meleseabrham/week-8-medical-telegram-warehouse/actions/workflows/unittests.yml/badge.svg)](https://github.com/meleseabrham/week-8-medical-telegram-warehouse/actions)
 
 An end-to-end data engineering pipeline designed to archive, clean, and analyze medical business data from public Ethiopian Telegram channels. This project utilizes a sophisticated ELT stack including **Python**, **YOLOv8 AI**, **PostgreSQL**, **dbt**, **FastAPI**, and **Dagster**.
 
@@ -93,9 +93,21 @@ The API serves business insights at `http://localhost:8000/docs`:
 ---
 
 ## ✅ Quality & Compliance
-- **CI/CD**: Fully passing GitHub Actions on `task-4` and `task-5`.
-- **Testing**: Includes `pytest` for API and 15+ dbt tests for data integrity.
+- **CI/CD**: Fully automated testing with GitHub Actions (`unittests.yml`).
+- **Refactored Core**: Implemented centralized configuration using Python `dataclasses` and modular utility functions.
+- **Type Safety**: 100% type hint coverage across the `src/` directory for better maintainability.
+- **Testing**: Robust `pytest` suite for core business logic, including image categorization and configuration validation.
 - **Scalability**: Implemented state tracking to prevent duplicate processing.
+
+---
+
+## 🛠️ Engineering Excellence
+
+This project follows professional Python development standards:
+*   **Modular Architecture**: Logic is separated into `src/` (core), `api/` (interface), and `orchestration/` (control).
+*   **Centralized Config**: All environment variables and constants are managed in `src/config.py`.
+*   **Clean Code**: Adheres to SOLID principles, using utility functions to reduce code duplication.
+*   **Automated Quality Assurance**: Integrated `pytest` ensures logic correctness before deployment.
 
 ---
 

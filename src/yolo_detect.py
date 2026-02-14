@@ -1,42 +1,21 @@
 import os
-import cv2
 import logging
+from typing import List, Dict, Any, Optional
 import psycopg2
 import pandas as pd
 from ultralytics import YOLO
-from dotenv import load_dotenv
+from .config import DBConfig, PathConfig, YOLO_MODEL_PATH
+from .utils import setup_logging, get_db_connection
 
-# Load environment variables
-load_dotenv()
-
-DB_HOST = os.getenv('DB_HOST', 'localhost')
-DB_PORT = os.getenv('DB_PORT', '5433')
-DB_NAME = os.getenv('DB_NAME', 'medical_db')
-DB_USER = os.getenv('DB_USER', 'sa')
-DB_PASS = os.getenv('DB_PASS', '123')
+# Initialize Config
+db_config = DBConfig()
+path_config = PathConfig()
 
 # Set up logging
-logging.basicConfig(
-    filename='logs/yolo_detection.log',
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+setup_logging('yolo_detection.log')
 
-def connect_db():
-    try:
-        conn = psycopg2.connect(
-            host=DB_HOST,
-            port=DB_PORT,
-            database=DB_NAME,
-            user=DB_USER,
-            password=DB_PASS
-        )
-        return conn
-    except Exception as e:
-        logging.error(f"Error connecting to database: {e}")
-        return None
-
-def create_detection_table(conn):
+def create_detection_table(conn: psycopg2.extensions.connection) -> None:
+    """Creates the table for storing YOLO detections."""
     try:
         with conn.cursor() as cur:
             cur.execute("""
@@ -45,10 +24,10 @@ def create_detection_table(conn):
                     message_id INTEGER,
                     channel_name TEXT,
                     image_path TEXT,
-                    detected_objects TEXT, -- Stores JSON string of detected objects like {'person': 0.9, 'bottle': 0.8}
+                    detected_objects TEXT, 
                     primary_class TEXT,
                     confidence_score FLOAT,
-                    image_category TEXT, -- 'Promotional', 'Product Display', 'Lifestyle', 'Other'
+                    image_category TEXT, 
                     detection_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
             """)
@@ -58,7 +37,7 @@ def create_detection_table(conn):
         logging.error(f"Error creating table: {e}")
         conn.rollback()
 
-def categorize_image(detections):
+def categorize_image(detections: List[Dict[str, Any]]) -> str:
     """
     Categorizes image based on detected objects.
     - Promotional: Person + (Bottle or Cup or Bowl or Box (if mapped))
@@ -69,7 +48,6 @@ def categorize_image(detections):
     classes = [d['class'] for d in detections]
     
     has_person = 'person' in classes
-    # Common objects that might represent medical products in general YOLO context
     product_classes = ['bottle', 'cup', 'bowl', 'wine glass', 'vase', 'suitcase', 'handbag', 'backpack'] 
     
     has_product = any(cls in product_classes for cls in classes)
@@ -83,18 +61,19 @@ def categorize_image(detections):
     else:
         return 'Other'
 
-def run_detection(conn):
-    model = YOLO("yolov8n.pt")  # Load pre-trained model
-    base_dir = 'data/raw/images'
+def run_detection(conn: psycopg2.extensions.connection) -> None:
+    """Runs YOLO detection on all images in the raw images directory."""
+    model = YOLO(YOLO_MODEL_PATH)
+    base_dir = path_config.IMAGE_DIR
     
     if not os.path.exists(base_dir):
-        logging.error("Images directory not found.")
+        logging.error(f"Images directory not found at {base_dir}")
         return
 
     channels = [d for d in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, d))]
     
     processed_count = 0
-    all_detections = []
+    all_detections: List[Dict[str, Any]] = []
     
     for channel in channels:
         channel_path = os.path.join(base_dir, channel)
@@ -102,13 +81,18 @@ def run_detection(conn):
         
         for img_file in images:
             img_path = os.path.join(channel_path, img_file)
-            message_id = img_file.split('.')[0]
+            message_id_str = img_file.split('.')[0]
+            try:
+                message_id = int(message_id_str)
+            except ValueError:
+                logging.warning(f"Skipping image with invalid message ID name: {img_file}")
+                continue
             
             try:
                 # Run inference
                 results = model(img_path)
                 
-                detections = []
+                detections: List[Dict[str, Any]] = []
                 for r in results:
                     for box in r.boxes:
                         cls_id = int(box.cls[0])
@@ -116,7 +100,6 @@ def run_detection(conn):
                         conf = float(box.conf[0])
                         detections.append({'class': cls_name, 'conf': conf})
                 
-                # Determine primary detection (highest confidence)
                 if detections:
                     best_detection = max(detections, key=lambda x: x['conf'])
                     primary_class = best_detection['class']
@@ -129,13 +112,8 @@ def run_detection(conn):
                 
                 category = categorize_image(detections)
                 
-                # Save to DB
                 with conn.cursor() as cur:
-                    # Check if already exists to avoid duplicates (optional, strictly raw usually just inserts)
-                    # For exercise, let's insert or ignore/update ideally, but simplistic insert here
-                    # We will delete existing for this message_id/channel to allow re-runs
                     cur.execute("DELETE FROM raw.yolo_detections WHERE message_id = %s AND channel_name = %s", (message_id, channel))
-                    
                     cur.execute("""
                         INSERT INTO raw.yolo_detections (
                             message_id, channel_name, image_path, detected_objects, 
@@ -148,7 +126,6 @@ def run_detection(conn):
                 conn.commit()
                 processed_count += 1
                 
-                # Append to CSV list (Requirement Task 3.2)
                 all_detections.append({
                     'message_id': message_id,
                     'channel_name': channel,
@@ -164,19 +141,16 @@ def run_detection(conn):
     # Save to CSV
     if all_detections:
         df = pd.DataFrame(all_detections)
-        os.makedirs('data/processed', exist_ok=True)
-        df.to_csv('data/processed/yolo_detections.csv', index=False)
-        logging.info("Saved detection results to data/processed/yolo_detections.csv")
-                
-            except Exception as e:
-                logging.error(f"Failed to process {img_path}: {e}")
-                conn.rollback()
+        os.makedirs(path_config.PROCESSED_DATA, exist_ok=True)
+        csv_path = os.path.join(path_config.PROCESSED_DATA, 'yolo_detections.csv')
+        df.to_csv(csv_path, index=False)
+        logging.info(f"Saved detection results to {csv_path}")
                 
     logging.info(f"YOLO detection completed. Processed {processed_count} images.")
     print(f"Processed {processed_count} images.")
 
 if __name__ == "__main__":
-    connection = connect_db()
+    connection = get_db_connection(db_config)
     if connection:
         create_detection_table(connection)
         run_detection(connection)

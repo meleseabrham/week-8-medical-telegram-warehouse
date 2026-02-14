@@ -15,3 +15,6 @@ dbt_packages/
 logs/
 *.session
 scraping_session.session
+.tmp_dagster_home*
+storage/
+*.db

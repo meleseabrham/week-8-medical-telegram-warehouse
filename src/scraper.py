@@ -3,48 +3,36 @@ import json
 import logging
 import asyncio
 from datetime import datetime
-from telethon import TelegramClient, events
-from dotenv import load_dotenv
+from typing import Dict, List, Tuple, Any, Optional
+from telethon import TelegramClient
+from .config import TelegramConfig, PathConfig, SCRAPING_LIMIT
+from .utils import setup_logging
 
-# Load environment variables
-load_dotenv()
+# Initialize Config
+tg_config = TelegramConfig()
+path_config = PathConfig()
 
-API_ID = os.getenv('TG_API_ID')
-API_HASH = os.getenv('TG_API_HASH')
+# Set up logging
+setup_logging('scraping.log')
 
-# List of channels to scrape
-CHANNELS = [
-    'CheMed123',
-    'lobelia4cosmetics',
-    'tikvahpharma',
-    'yenehealth',
-    'LiyuPharma'
-]
-
-STATE_FILE = 'data/scraping_state.json'
-
-def load_state():
-    if os.path.exists(STATE_FILE):
+def load_state() -> Dict[str, int]:
+    """Loads the last scraped message ID for each channel."""
+    if os.path.exists(path_config.STATE_FILE):
         try:
-            with open(STATE_FILE, 'r') as f:
+            with open(path_config.STATE_FILE, 'r') as f:
                 return json.load(f)
-        except:
+        except Exception as e:
+            logging.error(f"Error loading state file: {e}")
             return {}
     return {}
 
-def save_state(state):
-    os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
-    with open(STATE_FILE, 'w') as f:
+def save_state(state: Dict[str, int]) -> None:
+    """Saves the last scraped message ID for each channel."""
+    os.makedirs(os.path.dirname(path_config.STATE_FILE), exist_ok=True)
+    with open(path_config.STATE_FILE, 'w') as f:
         json.dump(state, f, indent=4)
 
-# Set up logging
-logging.basicConfig(
-    filename='logs/scraping.log',
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
-
-async def scrape_channel(client, channel_username, last_id=0):
+async def scrape_channel(client: TelegramClient, channel_username: str, last_id: int = 0) -> Tuple[str, int]:
     """Scrapes messages and images from a given Telegram channel."""
     logging.info(f"Starting scraping for channel: {channel_username} (last_id: {last_id})")
     
@@ -53,14 +41,14 @@ async def scrape_channel(client, channel_username, last_id=0):
         channel_name = entity.username or entity.title
         
         # Create folder for images
-        image_dir = f'data/raw/images/{channel_name}'
+        image_dir = os.path.join(path_config.IMAGE_DIR, channel_name)
         os.makedirs(image_dir, exist_ok=True)
         
-        messages = []
+        messages: List[Dict[str, Any]] = []
         new_last_id = last_id
         
         # iter_messages with min_id to only get newer messages
-        async for message in client.iter_messages(entity, min_id=last_id, limit=200):
+        async for message in client.iter_messages(entity, min_id=last_id, limit=SCRAPING_LIMIT):
             if message.id > new_last_id:
                 new_last_id = message.id
                 
@@ -85,7 +73,7 @@ async def scrape_channel(client, channel_username, last_id=0):
         
         # Store metadata in partitioned JSON
         today = datetime.now().strftime('%Y-%m-%d')
-        json_dir = f'data/raw/telegram_messages/{today}'
+        json_dir = os.path.join(path_config.MESSAGES_DIR, today)
         os.makedirs(json_dir, exist_ok=True)
         
         json_path = os.path.join(json_dir, f"{channel_name}.json")
@@ -99,12 +87,17 @@ async def scrape_channel(client, channel_username, last_id=0):
         logging.error(f"Error scraping {channel_username}: {str(e)}")
         return channel_username, last_id
 
-async def main():
-    # Attempting another set of parameters to bypass RPC Error 406
+async def run_scraper() -> None:
+    """Main entry point for the scraping process."""
+    if not tg_config.api_id or not tg_config.api_hash:
+        logging.error("TG_API_ID or TG_API_HASH missing in .env")
+        print("API_ID and API_HASH must be set in .env file")
+        return
+
     async with TelegramClient(
         'scraping_session', 
-        API_ID, 
-        API_HASH,
+        tg_config.api_id, 
+        tg_config.api_hash,
         device_model='iPhone 13 Pro',
         system_version='15.0',
         app_version='8.2.1',
@@ -113,7 +106,7 @@ async def main():
     ) as client:
         state = load_state()
         tasks = []
-        for channel in CHANNELS:
+        for channel in tg_config.channels:
             last_id = state.get(channel, 0)
             tasks.append(scrape_channel(client, channel, last_id))
             
@@ -125,8 +118,5 @@ async def main():
         save_state(state)
 
 if __name__ == '__main__':
-    if not API_ID or not API_HASH:
-        print("API_ID and API_HASH must be set in .env file")
-        logging.error("API_ID or API_HASH missing in .env")
-    else:
-        asyncio.run(main())
+    asyncio.run(run_scraper())
+
