@@ -12,4 +12,10 @@ ultralytics
 opencv-python
 telethon
 dagster
+streamlit
+shap
+scikit-learn
+matplotlib
+seaborn
+plotly
 dagster-webserver

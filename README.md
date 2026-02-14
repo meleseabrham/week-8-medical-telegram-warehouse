@@ -13,7 +13,8 @@ An end-to-end data engineering pipeline designed to archive, clean, and analyze 
 - **🏗️ Star Schema Warehouse**: Advanced dbt modeling for pharmaceutical and medical retail analytics.
 - **⚡ Analytical API**: High-performance FastAPI endpoints for real-time reporting.
 - **🔄 Full Orchestration**: Entire pipeline automated with Dagster (Daily schedules + Job monitoring).
-- **📊 Intelligence Dashboard**: Interactive Jupyter notebook for visualizing business insights.
+- **📊 Intelligence Dashboard**: Interactive Streamlit app for real-time visualization and business insights.
+- **🧠 Model Explainability**: SHAP-powered impact analysis of image categories on user engagement.
 
 ---
 
@@ -80,6 +81,7 @@ If you prefer running individual components:
 3. **Run AI Detection**: `python src/yolo_detect.py`
 4. **dbt Transform**: `cd medical_warehouse && dbt run`
 5. **Start API**: `uvicorn api.main:app --reload`
+6. **Launch Dashboard**: `streamlit run api/dashboard.py`
 
 ---
 
