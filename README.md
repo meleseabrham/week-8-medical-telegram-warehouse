@@ -80,8 +80,8 @@ If you prefer running individual components:
 2. **Load to SQL**: `python src/load_data.py`
 3. **Run AI Detection**: `python src/yolo_detect.py`
 4. **dbt Transform**: `cd medical_warehouse && dbt run`
-5. **Start API**: `uvicorn api.main:app --reload`
-6. **Launch Dashboard**: `streamlit run api/dashboard.py`
+5. **Start API**: `python -m uvicorn api.main:app --reload`
+6. **Launch Dashboard**: `python -m streamlit run api/dashboard.py`
 
 ---
 
