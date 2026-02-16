@@ -58,4 +58,4 @@ This project implements a sophisticated **ELT (Extract, Load, Transform)** pipel
 
 ## 👤 Author
 **Melese Abrham**  
-[LinkedIn](https://www.linkedin.com/in/meleseabrham) | [GitHub](https://github.com/meleseabrham) | [Website](https://meleseabrham.com)
+[LinkedIn]https://www.linkedin.com/in/melesse-abrham) | [GitHub](https://github.com/meleseabrham) | [Website](https://melese.vercel.app/)
